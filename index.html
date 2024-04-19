@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spellcrafting Game</title>
+    <style>
+        *, *::before, *::after {
+        box-sizing: border-box;
+        }
+        * {
+        margin: 0;
+        }
+        html {
+            width: 100vw;
+            height: 100vh;
+            background-color: #f6f6f6;
+        }
+        body {
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        }
+        img, picture, video, canvas, svg {
+        display: block;
+        max-width: 100%;
+        }
+        input, button, textarea, select {
+        font: inherit;
+        }
+        p, h1, h2, h3, h4, h5, h6 {
+        overflow-wrap: break-word;
+        }
+        #root, #__next {
+        isolation: isolate;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            font-size: 16px;
+            width: 100%;
+            height: 100%;
+            border: 5px solid #f6f6f6;
+        }
+
+        .canvases {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .dragLayer {
+            position: absolute;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .canvas {
+            position: relative;
+            padding: 2px;
+            margin: 0 5px;
+            opacity: 0.3;
+            transition: all 0.5s;
+        }
+
+        .canvas-title {
+            text-align: center;
+        }
+
+        .editor-mode .canvas {
+            opacity: 1;
+        }
+
+        .active .canvas {
+            opacity: 1;
+        }
+
+        .editor-mode .grid-cell {
+            width: 64px;
+            height: 64px;
+            border: 2px dashed #95A3B3;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .grid-cell {
+            width: 64px;
+            height: 64px;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .socket {
+            width: 58px;
+            height: 58px;
+            border: 2px solid #95A3B3;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .rune {
+            width: 58px;
+            height: 58px;
+            border: 4px solid #6E2594;
+            background-color: #6E2594;
+            color: white;
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 10px;
+            line-height: 1;
+        }
+
+        .pocket {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            border: 2px solid #222222;
+            border-radius: 38px;
+            padding: 5px;
+        }
+
+        .pocket-spot {
+            width: 64px;
+            height: 64px;
+            border: 0;
+            border: 2px solid #222222;
+            margin: 0 5px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .editor-mode {
+            border: 5px solid #22FDBF;
+            padding: 0px;
+            transition: all 0.5s;
+        }
+
+        .editor-indicator {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            background-color: #22FDBF;
+            opacity: 0;
+            padding: 10px;
+        }
+
+        .editor-mode .editor-indicator {
+            opacity: 1;
+        }
+
+        .set-primordial-mode {
+            border: 5px dashed #27aae1;
+        }
+
+        .editor-mode .canvas {
+            pointer-events: auto;
+        }
+
+        .editor-mode-button {
+            
+            background-color: #22FDBF;
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+        }
+
+        .editor-mode-button button {
+            display: block;
+            margin: 0 5px;
+        }
+
+        .primordial {
+            background-color: rgba(39, 170, 225, 1);
+        }
+
+        .selected {
+            transition: all 0.5s;
+            border: 1px solid #4B4E6D;
+            box-shadow: 0 0 10px 5px #4B4E6D;
+        }
+
+        .input-container {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            background-color: #222222;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            width: auto;
+            padding: 10px;
+            opacity: 1;
+        }
+
+        .editor-mode .input-container {
+            opacity: 0;
+            transition: all 0.5s;
+        }
+
+        .input {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            height: auto;
+            color: white;
+            margin: 0px 10px;
+        }
+
+        .glyph {
+            min-height: 40px;
+            min-width: 40px;
+            color: white;
+            border: 2px solid white;
+            border-radius: 4px;
+            text-align: center;
+            padding: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 3px;
+        }
+
+        h4 {
+            margin: 0;
+        }
+
+        #debug-log {
+            color: red;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .in-hand {
+            position: absolute;
+            box-shadow: 0 0 10px 5px #ECD444;
+            opacity: 0.6;
+            transition: all 0.5s;
+        }
+
+        .shake-horizontal {
+            animation: shake-horizontal 0.8s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
+        }
+
+        @keyframes shake-horizontal {
+            0%,
+            100% {
+                -webkit-transform: translateX(0);
+                        transform: translateX(0);
+            }
+            10%,
+            30%,
+            50%,
+            70% {
+                -webkit-transform: translateX(-10px);
+                        transform: translateX(-10px);
+            }
+            20%,
+            40%,
+            60% {
+                -webkit-transform: translateX(10px);
+                        transform: translateX(10px);
+            }
+            80% {
+                -webkit-transform: translateX(8px);
+                        transform: translateX(8px);
+            }
+            90% {
+                -webkit-transform: translateX(-8px);
+                        transform: translateX(-8px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="editor-mode-button">
+        <div style="display: inline-flex;">
+            <button onclick="ToggleEditorMode()" class="editorButton">Toggle Editor Mode</button>
+            <button onclick="ToggleSetPrimordial()" class="primordialButton">Set primordial</button>
+        </div>
+        <p id="debug-log"></p>
+    </div>
+
+    <div class="editor-indicator">
+        <h1>EDIT MODE ACTIVE</h1>
+        <div class="instruction">
+            <ol>
+                <li>
+                    <h4>Create spell canvas (Each node need be adjacent or in diagonal)</h4>
+                </li>
+                <li>
+                    <h4>Click on Set Primordial button to set which node is the starting point (One per canvas)</h4>
+                </li>
+                <li>
+                    <h4>Exit edit mode with Toggle Editor Mode button</h4>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="pocket">
+        <div class="pocket-spot" id="1">
+            <div class="rune" id="rune1" draggable="true">Augment 1</div>
+        </div>
+        <div class="pocket-spot" id="2">
+            <div class="rune" id="rune2" draggable="true">Augment 2</div>
+        </div>
+        <div class="pocket-spot" id="3">
+            <div class="rune" id="rune3" draggable="true">Augment 3</div>
+        </div>
+        <div class="pocket-spot" id="4">
+            <div class="rune" id="rune4" draggable="true">Augment 4</div>
+        </div>
+        <div class="pocket-spot" id="5">
+            <div class="rune" id="rune5" draggable="true">Augment 5</div>
+        </div>
+        <div class="pocket-spot" id="6">
+            <div class="rune" id="rune6" draggable="true">Augment 6</div>
+        </div>
+        <div class="pocket-spot" id="7">
+            <div class="rune" id="rune7" draggable="true">Augment 7</div>
+        </div>
+        <div class="pocket-spot" id="8">
+            <div class="rune" id="rune8" draggable="true">Augment 8</div>
+        </div>
+        <div class="pocket-spot" id="9">
+            <div class="rune" id="rune9" draggable="true">Augment 9</div>
+        </div>
+        <div class="pocket-spot" id="10">
+            <div class="rune" id="rune10" draggable="true">Augment 10</div>
+        </div>
+    </div>
+
+    <div class="dragLayer" id="drag-layer">
+    </div>
+
+    <div class="canvases">
+        <div class="canvas-container active">
+            <h2 class="canvas-title">Primordial X</h2>
+            <div class="canvas" id="canvas1">
+
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <h2 class="canvas-title">Primordial Y</h2>
+            <div class="canvas" id="canvas2">
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="input-container">
+        <div class="input">
+            <div class="glyph"><h4>WASD</h4></div>
+            <h4>Move</h4>
+        </div>
+        <div class="input">
+            <div class="glyph">
+                <h4>C</h4>
+            </div>
+            <h4>Change focus</h4>
+        </div>
+        <div class="input">
+            <div class="glyph">
+                <h4>F</h4>
+            </div>
+            <h4>Pick / Drop</h4>
+        </div>
+        <div class="input">
+            <div class="glyph">
+                <h4>Q</h4>
+            </div>
+            <div class="glyph">
+                <h4>E</h4>
+            </div>
+            <h4>Cycle Spell</h4>
+        </div>
+    </div>
+
+    <script>
+        const gridCells = 5;
+        const canvasGrids = document.querySelectorAll('.canvas');
+        const canvases = document.querySelectorAll('.canvas-container');
+        const editorButton = document.querySelectorAll('.editorButton');
+        const pocket = document.querySelectorAll('.pocket');
+        const pocketSpots = document.querySelectorAll('.pocket-spot');
+        const runes = document.querySelectorAll('.rune');
+        const debugLogger = document.getElementById('debug-log');
+        const dragLayer = document.getElementById('drag-layer');
+
+        let focusedState = 'CANVAS';
+        let editorMode = false;
+        let setPrimordialMode = false;
+        let currentCanvas = 0;
+        let highestNodeInCanvas = 0;
+        let runeInHand = null;
+
+        let currentSelectedCanvasNode; 
+        let currentSelectedCanvasNodeNavigable = new Map();
+        
+        currentSelectedCanvasNodeNavigable.set('top', null);
+        currentSelectedCanvasNodeNavigable.set('top-left', null);
+        currentSelectedCanvasNodeNavigable.set('top-right', null);
+        currentSelectedCanvasNodeNavigable.set('bottom', null);
+        currentSelectedCanvasNodeNavigable.set('bottom-left', null);
+        currentSelectedCanvasNodeNavigable.set('bottom-right', null);
+        currentSelectedCanvasNodeNavigable.set('left', null);
+        currentSelectedCanvasNodeNavigable.set('right', null);
+
+
+        let currentSelectedPocketNode;
+        let currentSelectedPocketNodeNavigable = new Map();
+
+        currentSelectedPocketNodeNavigable.set('top', null);
+        currentSelectedPocketNodeNavigable.set('bottom', null);
+        currentSelectedCanvasNodeNavigable.set('left', null);
+        currentSelectedPocketNodeNavigable.set('right', null);
+
+        // Event listeners for canvas navigation
+        document.addEventListener('keydown', (e) => {
+                if (editorMode) return;
+
+                if (e.key === 'q') {
+                    currentCanvas = (currentCanvas + 1) % canvases.length;
+                    SwitchCanvas(currentCanvas);
+                    
+                    if (focusedState == 'CANVAS') {
+                        if (currentSelectedCanvasNode) {
+                            currentSelectedCanvasNode.classList.remove('selected');
+                        }
+
+                        currentSelectedCanvasNode = null;
+                        HighestNodeInCanvas();
+                        FocusPrimordial();
+                    }
+                } else if (e.key === 'e') {
+                    currentCanvas = (currentCanvas - 1 + canvases.length) % canvases.length;
+                    SwitchCanvas(currentCanvas);
+
+                    if (focusedState == 'CANVAS') {
+                        if (currentSelectedCanvasNode) {
+                            currentSelectedCanvasNode.classList.remove('selected');
+                        }
+
+                        currentSelectedCanvasNode = null;
+                        HighestNodeInCanvas();
+                        FocusPrimordial();
+                    }
+                }
+
+                if (e.key === 'c') {
+                    SwitchFocusState();
+                }
+
+                if (e.key === 'f') {
+                    if (!runeInHand) {
+                        PickUp();
+                    } else {
+                        Drop();
+                    }
+
+                }
+
+                // Movement handling
+                const moveDirections = {
+                    w: ['top', 'top-left', 'top-right'],
+                    s: ['bottom', 'bottom-left', 'bottom-right'],
+                    a: ['left', 'top-left', 'bottom-left'],
+                    d: ['right', 'top-right', 'bottom-right']
+                };
+                const direction = moveDirections[e.key];
+
+                if (focusedState == 'CANVAS') {
+                    if (direction && currentSelectedCanvasNode !== null) {
+                        let foundNeighbour  = false;
+
+                        for (const dir of direction) {
+                            const elm = currentSelectedCanvasNodeNavigable.get(dir);
+                            if (elm) {
+                                if (dir == 'top' || dir == 'top-left' || dir == 'top-right') {
+                                    foundNeighbour = false;
+                                }
+
+                                if (currentSelectedCanvasNode.classList.contains('shake-horizontal')) {
+                                    currentSelectedCanvasNode.classList.remove('shake-horizontal');
+                                }
+                                currentSelectedCanvasNode.classList.remove('selected');
+                                currentSelectedCanvasNode = elm;
+                                currentSelectedCanvasNode.classList.add('selected');
+                                DetermineNavigation();
+                                break;
+                            } else {
+                                if (dir == 'top') {
+                                    foundNeighbour = true;
+                                }
+                            }
+                        }
+
+                        if (foundNeighbour) {
+                            let currentNodeRowPosition = parseInt(currentSelectedCanvasNode.parentElement.getAttribute('data-row'));
+
+                            if (currentNodeRowPosition == highestNodeInCanvas) {
+                                SwitchFocusState();
+                            }
+
+                        }
+                    }
+                }
+
+                if (focusedState == 'POCKET') {
+                    if (direction) {
+                        for (const dir of direction) {
+                            const elm = currentSelectedPocketNodeNavigable.get(dir);
+                            if (elm) {
+                                currentSelectedPocketNode.classList.remove('selected');
+                                currentSelectedPocketNode = elm;
+                                currentSelectedPocketNode.classList.add('selected');
+                                DeterminePocketNavigation();
+                                break;
+                            } else {
+                                if (dir == 'bottom') {
+                                    SwitchFocusState();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                
+            UpdateRuneInHandPosition();
+
+        });
+
+        canvasGrids.forEach(canvas => {
+            for (let i = 0; i < gridCells; i++) {
+                for (let j = 0; j < gridCells; j++) {
+                    const gridCell = document.createElement('div');
+                    gridCell.classList.add('grid-cell')
+
+                    gridCell.style.top = `${64 * i}px`;
+                    gridCell.style.left = `${64 * j}px`;
+                    gridCell.setAttribute('data-row', i);
+                    gridCell.setAttribute('data-col', j);
+
+                    // const socketPerCell = document.createElement('div');
+                    // socketPerCell.classList.add('socket');
+                    // gridCell.appendChild(socketPerCell);
+
+                    gridCell.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (!editorMode || e.target.classList.contains('rune')) return;
+                        
+                        if (setPrimordialMode) {
+                            if (e.target.classList.contains('socket') && !e.target.classList.contains('primordial')) {
+                                e.target.classList.add('primordial');
+                            } else if ((e.target.classList.contains('grid-cell') && e.target.children.length > 0 && e.target.firstChild.classList.contains('primordial'))) {
+                                e.target.firstChild.classList.add('primordial');
+                            } else {
+                                e.target.classList.remove('primordial');
+                            }                            
+                        } else {
+                            if (e.target.classList.contains('socket')) {
+                                if (e.target.children.length > 0) return;
+                                e.target.remove();
+                            } else if ((e.target.classList.contains('grid-cell') && e.target.children.length > 0)) {
+                                e.target.removeChild(e.target.firstChild);
+                            }
+                            else if (e.target.children.length == 0) {
+                                const socketPerCell = document.createElement('div');
+                                socketPerCell.classList.add('socket');
+                                gridCell.appendChild(socketPerCell);
+                            }
+                        }
+                    });
+
+                    canvas.appendChild(gridCell);
+
+                    canvas.style.width = `${64 * gridCells}px`;
+                    canvas.style.height = `${64 * gridCells}px`;
+                }
+            }
+        });
+
+        function SwitchCanvas(index) {
+            canvases.forEach(canvas => {
+                canvas.classList.remove('active');
+            });
+            canvases[index].classList.add('active');
+        }
+
+        SwitchCanvas(currentCanvas);
+
+        function ToggleEditorMode() {
+            editorMode = !editorMode;
+
+            if (editorMode) {
+                if (currentSelectedCanvasNode) {
+                    currentSelectedCanvasNode.classList.remove('selected');
+                }
+
+                currentSelectedCanvasNode = null;
+
+                if (currentSelectedPocketNode) {
+                    currentSelectedPocketNode.classList.remove('selected');
+                }
+
+                currentSelectedPocketNode = null;
+            } else {
+                if (!document.getElementsByClassName('primordial')[0]) {
+                    debugLogger.innerText = `MUST CREATE SPELLTREE AND MUST SET A PRIMORDIAL FIRST`;
+                    editorMode = !editorMode;
+                    return;
+                } else {
+                    debugLogger.innerText = ``;
+                    HighestNodeInCanvas();
+                    FocusPrimordial();
+                    document.body.classList.remove('editor-mode');
+                }
+            }
+
+            if (!editorMode && setPrimordialMode) {
+                ToggleSetPrimordial();
+            }
+
+            if (editorMode) {
+                document.body.classList.add('editor-mode');
+
+            } else {
+                document.body.classList.remove('editor-mode');
+            }
+        }
+
+        function ToggleSetPrimordial() {
+            setPrimordialMode = !setPrimordialMode;
+
+            if (setPrimordialMode && !editorMode) {
+                ToggleEditorMode();
+            }
+
+            if (setPrimordialMode) {
+                document.body.classList.add('set-primordial-mode');
+
+            } else {
+                document.body.classList.remove('set-primordial-mode');
+            }
+        }
+
+        function HighestNodeInCanvas() {
+            const canvas = canvasGrids[currentCanvas];
+            const gridCells = Array.from(canvas.querySelectorAll('.grid-cell'));
+            for (let j = 0; j < gridCells.length; j++) {
+                const cell = gridCells[j];
+                if (cell.firstChild) {
+                    highestNodeInCanvas = parseInt(cell.getAttribute('data-row'));
+                    break;
+                }
+            }
+        }
+            
+        function DetermineNavigation() {
+            if (!currentSelectedCanvasNode) return;
+            console.log(currentSelectedCanvasNode)
+            const currentRow = parseInt(currentSelectedCanvasNode.parentElement.getAttribute('data-row'));
+            const currentCol = parseInt(currentSelectedCanvasNode.parentElement.getAttribute('data-col'));
+
+            currentSelectedCanvasNodeNavigable.clear();
+
+            const adjacentOffsets = [
+                { row: -1, col: 0 },   // top
+                { row: -1, col: -1 },  // top-left
+                { row: -1, col: 1 },   // top-right
+                { row: 1, col: 0 },    // bottom
+                { row: 1, col: -1 },   // bottom-left
+                { row: 1, col: 1 },    // bottom-right
+                { row: 0, col: -1 },   // left
+                { row: 0, col: 1 }     // right
+            ];
+
+            for (const offset of adjacentOffsets) {
+                const newRow = currentRow + offset.row;
+                const newCol = currentCol + offset.col;
+                const grid = FindGridByRowCol(newRow, newCol);
+
+                if (grid && grid.children.length > 0) {
+                    const direction = GetDirectionName(offset.row, offset.col);
+                    currentSelectedCanvasNodeNavigable.set(direction, grid.children[0]);
+                }
+            }
+        }
+
+        function FindGridByRowCol(row, col) {
+            const canvas = canvasGrids[currentCanvas];
+            const grid = canvas.querySelector(`.grid-cell[data-row="${row}"][data-col="${col}"]`);
+            if (grid) return grid;
+            
+            return null;
+        }
+
+        function GetDirectionName(rowOffset, colOffset) {
+            if (rowOffset === -1 && colOffset === 0) return 'top';
+            if (rowOffset === -1 && colOffset === -1) return 'top-left';
+            if (rowOffset === -1 && colOffset === 1) return 'top-right';
+            if (rowOffset === 1 && colOffset === 0) return 'bottom';
+            if (rowOffset === 1 && colOffset === -1) return 'bottom-left';
+            if (rowOffset === 1 && colOffset === 1) return 'bottom-right';
+            if (rowOffset === 0 && colOffset === -1) return 'left';
+            if (rowOffset === 0 && colOffset === 1) return 'right';
+        }
+
+        function FocusPrimordial() {
+            if (currentSelectedCanvasNode) {
+                currentSelectedCanvasNode.classList.add('selected');
+                DetermineNavigation();
+                return;
+            }
+
+            const canvas = canvasGrids[currentCanvas];
+            let elmFocus = canvas.getElementsByClassName('primordial')[0];
+            if (elmFocus != null) {
+                currentSelectedCanvasNode = elmFocus;
+                currentSelectedCanvasNode.classList.add('selected');
+                DetermineNavigation();
+                focusedState = 'CANVAS';
+            }
+        }
+
+        function DeterminePocketNavigation() {
+            if (!currentSelectedPocketNode) return;
+
+            currentSelectedPocketNodeNavigable.clear();
+
+            const currentIndex = parseInt(currentSelectedPocketNode.id) - 1;
+            const totalPocketSpots = pocketSpots.length;
+
+            // LEFT NAVIGATION
+            const leftIndex = (currentIndex === 0) ? totalPocketSpots - 1 : currentIndex - 1;
+            currentSelectedPocketNodeNavigable.set('left', pocketSpots[leftIndex]);
+
+            // RIGHT NAVIGATION
+            const rightIndex = (currentIndex === totalPocketSpots - 1) ? 0 : currentIndex + 1;
+            currentSelectedPocketNodeNavigable.set('right', pocketSpots[rightIndex]);
+
+            // TOP and BOTTOM NAVIGATION (for consistency)
+            currentSelectedPocketNodeNavigable.set('top', null);
+            currentSelectedPocketNodeNavigable.set('bottom', null);
+        }
+
+        function FocusFirstPocketSlot() {
+            let spot;
+            for (let i = 0; i < pocketSpots.length; i++) {
+                const pocketSpot = pocketSpots[i];
+                if (pocketSpot.children.length > 0) {
+                    spot = pocketSpot;
+                    break;
+                }
+            }
+
+            if (!spot) {
+                spot = pocketSpots[0];
+            }
+
+            if (spot) {
+                currentSelectedPocketNode = spot;
+                currentSelectedPocketNode.classList.add('selected');
+                DeterminePocketNavigation();
+                focusedState = 'POCKET';
+            }
+        }
+
+        function SwitchFocusState() {
+            if (focusedState == 'POCKET') {
+                focusedState = 'CANVAS';
+
+                if (currentSelectedPocketNode) {
+                    currentSelectedPocketNode.classList.remove('selected');
+                }
+
+                FocusPrimordial();
+
+            } else if (focusedState == 'CANVAS') {
+                focusedState = 'POCKET';
+
+                if (currentSelectedCanvasNode) {
+                    currentSelectedCanvasNode.classList.remove('selected');
+                }
+
+                FocusFirstPocketSlot();
+            }
+        }
+
+        function PickUp() {
+            if (focusedState == 'POCKET') {
+                if (!currentSelectedPocketNode) return;
+                if (currentSelectedPocketNode.children.length == 0) return;
+
+                let runeToClone = currentSelectedPocketNode.children[0];
+                let clonedRune = runeToClone.cloneNode(true);
+
+                clonedRune.setAttribute('current-slot', 'HAND');
+                
+                dragLayer.appendChild(clonedRune);
+                currentSelectedPocketNode.removeChild(runeToClone);
+
+                runeInHand = clonedRune;
+                UpdateRuneInHandPosition();
+            }
+
+            if (focusedState == 'CANVAS') {
+                if (!currentSelectedCanvasNode) return;
+                if (currentSelectedCanvasNode.classList.contains('primordial')) return;
+
+                if (!runeInHand && currentSelectedCanvasNode.children.length == 0) {
+                    let spot;
+                    for (let i = 0; i < pocketSpots.length; i++) {
+                        const pocketSpot = pocketSpots[i];
+                        if (pocketSpot.children.length > 0) {
+                            spot = pocketSpot;
+                            break;
+                        }
+                    }
+
+                    if (!spot) {
+                        spot = pocketSpots[0]; 
+                    }
+
+                    if (spot) {
+                        currentSelectedPocketNode = spot;
+                        currentSelectedPocketNode.classList.add('selected');
+                        DeterminePocketNavigation();
+                        focusedState = 'POCKET';
+                    }
+                    return;
+                };
+
+                let runeToClone = currentSelectedCanvasNode.children[0];
+                let clonedRune = runeToClone.cloneNode(true);
+
+                clonedRune.setAttribute('current-slot', 'HAND');
+
+                dragLayer.appendChild(clonedRune);
+                currentSelectedCanvasNode.removeChild(runeToClone);
+
+                runeInHand = clonedRune;
+                UpdateRuneInHandPosition();
+            }
+        }
+
+        function Drop() {
+            if (focusedState == 'POCKET') {
+                if (!runeInHand) return;
+                if (!currentSelectedPocketNode) return;
+                
+                if (currentSelectedPocketNode.children.length == 0) {
+                    // DROP LOGIC
+                    let runeToDrop = runeInHand;
+                    let dropRune = runeToDrop.cloneNode(true);
+
+                    dropRune.setAttribute('current-slot', 'POCKET');
+
+                    dropRune.classList.remove('in-hand');
+                    dropRune.style.top = "auto";
+                    dropRune.style.left = "auto";
+                    dragLayer.removeChild(runeInHand);
+                    currentSelectedPocketNode.appendChild(dropRune);
+
+                    runeInHand = null;
+                    UpdateRuneInHandPosition();
+                } else {
+                    let runeToDrop = runeInHand;
+                    let dropRune = runeToDrop.cloneNode(true);
+
+                    dropRune.setAttribute('current-slot', 'POCKET');
+
+                    dropRune.classList.remove('in-hand');
+                    dropRune.style.top = "auto";
+                    dropRune.style.left = "auto";
+                    dragLayer.removeChild(runeInHand);
+                    runeInHand = null;
+
+                    PickUp();
+
+                    currentSelectedPocketNode.appendChild(dropRune);
+                }
+            }
+
+            if (focusedState == 'CANVAS') {
+                if (!runeInHand) return;
+                if (!currentSelectedCanvasNode) return;
+                if (currentSelectedCanvasNode.classList.contains('primordial')) { 
+                    if (currentSelectedCanvasNode.classList.contains('shake-horizontal')) {
+                        currentSelectedCanvasNode.classList.remove('shake-horizontal');
+                    }
+                    
+                    currentSelectedCanvasNode.classList.add('shake-horizontal');
+                    return 
+                };
+
+                // DROP LOGIC
+                if (currentSelectedCanvasNode.children.length == 0) {
+                    let runeToDrop = runeInHand;
+                    let dropRune = runeToDrop.cloneNode(true);
+
+                    dropRune.setAttribute('current-slot', 'CANVAS');
+
+                    dropRune.classList.remove('in-hand');
+                    dropRune.style.top = "auto";
+                    dropRune.style.left = "auto";
+                    dragLayer.removeChild(runeInHand);
+                    currentSelectedCanvasNode.appendChild(dropRune);
+
+                    runeInHand = null;
+                    UpdateRuneInHandPosition();
+                } else {
+                    let runeToDrop = runeInHand;
+                    let dropRune = runeToDrop.cloneNode(true);
+
+                    dropRune.setAttribute('current-slot', 'CANVAS');
+
+                    dropRune.classList.remove('in-hand');
+                    dropRune.style.top = "auto";
+                    dropRune.style.left = "auto";
+                    dragLayer.removeChild(runeInHand);
+                    runeInHand = null;
+
+                    PickUp();
+
+                    currentSelectedCanvasNode.appendChild(dropRune);
+                }
+            }
+        }
+
+        function UpdateRuneInHandPosition() {
+            if (!runeInHand) return;
+
+            runeInHand.classList.add('in-hand');
+
+            if (focusedState == 'POCKET') {
+                if (!currentSelectedPocketNode) return;
+
+                let viewportOffset = currentSelectedPocketNode.getBoundingClientRect();
+                let top = viewportOffset.top;
+                let left = viewportOffset.left;
+
+                runeInHand.style.top = `${top + 25}px`;
+                runeInHand.style.left = `${left + 25}px`;
+            }
+
+            if (focusedState == 'CANVAS') {
+                if (!currentSelectedCanvasNode) return;
+
+                let viewportOffset = currentSelectedCanvasNode.getBoundingClientRect();
+                let top = viewportOffset.top;
+                let left = viewportOffset.left;
+
+                runeInHand.style.top = `${top + 25}px`;
+                runeInHand.style.left = `${left + 25}px`;
+            }
+        }
+
+        function GetNearestPocketSlot() {
+
+        }
+
+        window.onload = function () {
+            ToggleEditorMode();
+        };
+    </script>
+</body>
+
+</html>
